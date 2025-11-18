@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:project_ppkd_b4/constant/endphoint.dart';
+import 'package:project_ppkd_b4/models/chekcaut.dart';
 import 'package:project_ppkd_b4/models/register_models.dart';
 
 class AuthAPI {
@@ -70,6 +71,9 @@ class AuthAPI {
     }
   }
 
+  // =====================================================
+  //                    CHECK IN
+  // =====================================================
   static Future<String> postAttenddance({
     required String token,
     required double latitude,
@@ -80,9 +84,7 @@ class AuthAPI {
     required String address,
     required String time,
   }) async {
-    final url = Uri.parse(
-      Endpoint.attendanceIn,
-    ); // Pastikan Endpoint.attendance sudah ada
+    final url = Uri.parse(Endpoint.attendanceIn);
 
     final response = await http.post(
       url,
@@ -93,25 +95,66 @@ class AuthAPI {
       },
       body: jsonEncode({
         "attendance_date": attendanceDate,
-        "check_in" : time,
+        "check_in": time,
         "check_in_address": address,
         "check_in_lat": latitude,
         "check_in_lng": longitude,
         "status": 'masuk',
-        // "photo": base64Image,
-        // "type": isCheckIn ? "check_in" : "check_out",
       }),
     );
 
     log("STATUS ABSEN: ${response.statusCode}");
     log("BODY ABSEN: ${response.body}");
 
-    // Jika sukses
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body)["message"] ?? "Berhasil";
     } else {
       final msg =
           jsonDecode(response.body)["message"] ?? "Gagal mengirim absensi";
+      throw Exception(msg);
+    }
+  }
+
+  // =====================================================
+  //                    CHECK OUT
+  // =====================================================
+  static Future<Chekcautmodel> postCheckout({
+    required String token,
+    required double latitude,
+    required double longitude,
+    required String base64Image,
+    required String attendanceDate,
+    required String address,
+    required String time,
+  }) async {
+    final url = Uri.parse(Endpoint.attendanceOut);
+
+    final response = await http.post(
+      url,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "attendance_date": attendanceDate,
+        "check_out": time,
+        "check_out_address": address,
+        "check_out_lat": latitude,
+        "check_out_lng": longitude,
+        "status": 'pulang',
+        // "photo": base64Image,  // aktifkan jika backend butuh foto
+      }),
+    );
+
+    log("STATUS CHECKOUT: ${response.statusCode}");
+    log("BODY CHECKOUT: ${response.body}");
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return Chekcautmodel.fromJson(jsonDecode(response.body));
+    } else {
+      final msg =
+          jsonDecode(response.body)["message"] ?? "Gagal melakukan checkout";
       throw Exception(msg);
     }
   }

@@ -6,5 +6,5 @@ class Endpoint {
   static const String batch = "$baseUrl/batches";
   static const String training = "$baseUrl/trainings";
   static const String attendanceIn = "$baseUrl/absen/check-in";
-  static const String attendanceOut = "$baseUrl/attendance-out";
+  static const String attendanceOut = "$baseUrl/absen/check-out";
 }

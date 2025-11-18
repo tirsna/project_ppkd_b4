@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:project_ppkd_b4/views/chekcaut.dart';
 import 'package:project_ppkd_b4/views/chekin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart'; // 🔥 WAJIB BIAR TIDAK ERROR
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,6 +16,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  GoogleMapController? mapController;
+  GoogleMapController? _googleMapController;
+  LatLng _currentPosition = LatLng(-6.2000, 108.816666);
+  String _currentAddress = "Alamat tidak ditemukan";
+  Marker? _marker;
+
   String _userName = "Pengguna";
   String _userNIP = "Memuat...";
   String _currentDate = "";
@@ -21,6 +32,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadUserDataAndDate();
+    _getCurrentLocation();
   }
 
   String _getGreeting() {
@@ -51,6 +63,69 @@ class _HomePageState extends State<HomePage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // ==========================
+  //     OPEN GOOGLE MAPS
+  // ==========================
+  void openGoogleMaps() async {
+    final lat = _currentPosition.latitude;
+    final lng = _currentPosition.longitude;
+
+    final googleUrl =
+        "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
+
+    await launchUrl(Uri.parse(googleUrl), mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        return;
+      }
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    _currentPosition = LatLng(position.latitude, position.longitude);
+
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      _currentPosition.latitude,
+      _currentPosition.longitude,
+    );
+    Placemark place = placemarks[0];
+
+    setState(() {
+      _marker = Marker(
+        markerId: const MarkerId("lokasi_saya"),
+        position: _currentPosition,
+        infoWindow: InfoWindow(
+          title: "Lokasi Anda",
+          snippet: "${place.street}, ${place.locality}",
+        ),
+      );
+
+      _currentAddress =
+          "${place.name}, ${place.street}, ${place.locality}, ${place.country}, ${place.postalCode}";
+
+      _googleMapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: _currentPosition, zoom: 16),
+        ),
+      );
+    });
   }
 
   @override
@@ -125,35 +200,91 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              // =============================
-              //      TOMBOL CHECK IN BARU
-              // =============================
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    backgroundColor: const Color(0xff1D5DFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+              // ===============================================
+              //   CHECK IN + CHECK OUT (BERSEBELAHAN)
+              // ===============================================
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: const Color(0xff1D5DFF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const CheckInPage(isCheckIn: true),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "CHECK IN",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const CheckInPage(isCheckIn: true),
-                      ),
-                    );
-                  },
 
-                  child: const Text(
-                    "CHECK IN",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const CheckInOutPage(isCheckIn: false),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "CHECK OUT",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 25),
+
+              // ==========================
+              //        GOOGLE MAPS
+              // ==========================
+              SizedBox(
+                height: 250,
+                width: double.infinity,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: GoogleMap(
+                      myLocationEnabled: true,
+                      initialCameraPosition: CameraPosition(
+                        target: _currentPosition,
+                        zoom: 15,
+                      ),
                     ),
                   ),
                 ),
@@ -183,6 +314,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 15),
+
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -192,7 +324,7 @@ class _HomePageState extends State<HomePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {},
+                        onPressed: openGoogleMaps,
                         child: const Text(
                           "Open Maps",
                           style: TextStyle(color: Colors.white),

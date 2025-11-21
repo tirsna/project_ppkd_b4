@@ -1,7 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:project_ppkd_b4/service/api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project_ppkd_b4/models/history_models.dart';
 
-class KehadiranPage extends StatelessWidget {
+class KehadiranPage extends StatefulWidget {
   const KehadiranPage({super.key});
+
+  @override
+  State<KehadiranPage> createState() => _KehadiranPageState();
+}
+
+class _KehadiranPageState extends State<KehadiranPage> {
+  List<Datum> history = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadHistory();
+  }
+
+  Future<void> loadHistory() async {
+    setState(() => isLoading = true);
+
+    final pref = await SharedPreferences.getInstance();
+    final token = pref.getString("token") ?? "";
+
+    try {
+      final result = await AuthAPI.getHistory(token);
+      setState(() {
+        history = result.data ?? [];
+      });
+    } catch (e) {
+      debugPrint("ERR: $e");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  // === KONFIRMASI HAPUS ===
+  Future<void> confirmDelete(int id) async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Hapus Riwayat"),
+          content: const Text("Yakin ingin menghapus riwayat ini?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                deleteItem(id);
+              },
+              child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // === PROSES HAPUS API ===
+  Future<void> deleteItem(int id) async {
+    final pref = await SharedPreferences.getInstance();
+    final token = pref.getString("token") ?? "";
+
+    try {
+      await AuthAPI.deleteHistory(token: token, id: id);
+      loadHistory();
+    } catch (e) {
+      debugPrint("ERR DELETE: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,45 +87,34 @@ class KehadiranPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Judul Halaman
               const Text(
                 "Riwayat Kehadiran",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 20),
 
-              // List Kehadiran
               Expanded(
-                child: ListView(
-                  children: [
-                    _itemKehadiran(
-                      tanggal: "10 November 2025",
-                      jamMasuk: "08:02",
-                      jamKeluar: "16:55",
-                      status: "Hadir",
-                      color: Colors.green,
-                    ),
-                    _itemKehadiran(
-                      tanggal: "09 November 2025",
-                      jamMasuk: "—",
-                      jamKeluar: "—",
-                      status: "Tidak Hadir",
-                      color: Colors.red,
-                    ),
-                    _itemKehadiran(
-                      tanggal: "08 November 2025",
-                      jamMasuk: "08:40",
-                      jamKeluar: "16:50",
-                      status: "Telat",
-                      color: Colors.orange,
-                    ),
-                  ],
-                ),
-              )
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : history.isEmpty
+                    ? const Center(child: Text("Belum ada riwayat"))
+                    : ListView.builder(
+                        itemCount: history.length,
+                        itemBuilder: (context, i) {
+                          final item = history[i];
+
+                          return _itemKehadiran(
+                            id: item.id!,
+                            tanggal:
+                                "${item.attendanceDate!.day}-${item.attendanceDate!.month}-${item.attendanceDate!.year}",
+                            jamMasuk: item.checkInTime ?? "-",
+                            jamKeluar: item.checkOutTime ?? "-",
+                            status: item.status ?? "-",
+                            color: Colors.green,
+                          );
+                        },
+                      ),
+              ),
             ],
           ),
         ),
@@ -59,8 +122,8 @@ class KehadiranPage extends StatelessWidget {
     );
   }
 
-  // Card Item Kehadiran — simple function biar rapih
   Widget _itemKehadiran({
+    required int id,
     required String tanggal,
     required String jamMasuk,
     required String jamKeluar,
@@ -75,26 +138,28 @@ class KehadiranPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Info tanggal
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tanggal,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+          // LEFT INFO
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tanggal,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text("Masuk : $jamMasuk"),
-              Text("Keluar : $jamKeluar"),
-            ],
+                const SizedBox(height: 6),
+                Text("Masuk : $jamMasuk"),
+                Text("Keluar : $jamKeluar"),
+              ],
+            ),
           ),
 
-          // Status
+          // STATUS BADGE
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
@@ -103,12 +168,17 @@ class KehadiranPage extends StatelessWidget {
             ),
             child: Text(
               status,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
             ),
-          )
+          ),
+
+          const SizedBox(width: 10),
+
+          // DELETE BUTTON
+          GestureDetector(
+            onTap: () => confirmDelete(id),
+            child: const Icon(Icons.delete, color: Colors.red, size: 26),
+          ),
         ],
       ),
     );

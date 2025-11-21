@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:project_ppkd_b4/preferences/preferences.dart';
-import 'package:project_ppkd_b4/views/botomnavigatros.dart'; // Ganti intinya()
+import 'package:project_ppkd_b4/views/botomnavigatros.dart';
 import 'package:project_ppkd_b4/views/register_screen.dart';
 import 'package:project_ppkd_b4/views/reset_password.dart';
-import 'package:project_ppkd_b4/service/api.dart'; // Pastikan path ini benar untuk AuthAPI
+import 'package:project_ppkd_b4/service/api.dart';
 import 'package:project_ppkd_b4/models/register_models.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,180 +14,168 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final GlobalKey<FormState> _formKey =
-      GlobalKey<FormState>(); // Key untuk Form
-  final TextEditingController emailC = TextEditingController();
-  final TextEditingController passC = TextEditingController();
-
-  // State untuk Loading
+  final _formKey = GlobalKey<FormState>();
+  final emailC = TextEditingController();
+  final passC = TextEditingController();
   bool _isLoading = false;
 
-  @override
-  void dispose() {
-    emailC.dispose();
-    passC.dispose();
-    super.dispose();
-  }
+  // 👇 TAMBAHAN UNTUK SHOW/HIDE PASSWORD
+  bool _obscurePassword = true;
 
-  // FUNGSI UTAMA UNTUK LOGIN
   Future<void> _loginAction() async {
-    // 1. Validasi Input (Pastikan field terisi dan format email benar)
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    // 2. Mulai Loading
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // 3. Panggil API Login
       final Registermodels result = await AuthAPI.loginUser(
-        email: emailC.text,
-        password: passC.text,
+        email: emailC.text.trim(),
+        password: passC.text.trim(),
       );
+
       MyPref.saveToken(result.data!.token.toString());
-      // 4. SUKSES: Pindah ke halaman utama
+
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Login Berhasil!")));
+      ).showSnackBar(const SnackBar(content: Text("Login Successful")));
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          // Ganti intinya() dengan nama class bottom navigation Anda
-          builder: (context) => const intinya(),
-        ),
+        MaterialPageRoute(builder: (_) => const Intinya()),
       );
     } catch (e) {
-      // 5. GAGAL: Tampilkan pesan error dari API/Exception
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Login Gagal: ${e.toString()}")));
+      ).showSnackBar(SnackBar(content: Text("Login Failed: $e")));
     } finally {
-      // 6. Sembunyikan Loading
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
-  }
-
-  // Widget untuk membuat field dengan validator
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required bool isPassword,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: isPassword,
-          keyboardType: label == "Email"
-              ? TextInputType.emailAddress
-              : TextInputType.text,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return '$label wajib diisi';
-            }
-            if (label == "Email" && !value.contains('@')) {
-              return 'Masukkan format email yang valid';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: hint,
-            filled: true,
-            fillColor: Colors.grey.shade100,
-            contentPadding: const EdgeInsets.all(15),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            errorStyle: const TextStyle(height: 1.0),
-          ),
-        ),
-      ],
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Colors.blue.shade700;
+    final accentColor = Colors.blue.shade200;
+    final cardColor = Colors.white;
+    final backgroundColor = Colors.blue.shade50;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // HEADER
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 50),
-                decoration: const BoxDecoration(
-                  color: Color(0xff1D5DFF),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(35),
-                    bottomRight: Radius.circular(35),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    "Presence App",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+      backgroundColor: backgroundColor,
+      body: Column(
+        children: [
+          // ===== HEADER =====
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryColor, accentColor],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
+            child: const Center(
+              child: Text(
+                "Welcome Back!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  height: 1.3,
                 ),
               ),
+            ),
+          ),
 
-              const SizedBox(height: 25),
+          const SizedBox(height: 25),
 
-              Form(
-                key: _formKey, // Tambahkan Form Key di sini
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 25,
-                    vertical: 10,
-                  ),
+          // ===== LOGIN CARD =====
+          Expanded(
+            child: SingleChildScrollView(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 25),
+                padding: const EdgeInsets.all(25),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Form(
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Log In",
+                        "Sign In",
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 25),
-
-                      // EMAIL FIELD
-                      _buildField(
-                        controller: emailC,
-                        label: "Email",
-                        hint: "Masukkan email anda...",
-                        isPassword: false,
-                      ),
-
                       const SizedBox(height: 20),
 
-                      // PASSWORD FIELD
-                      _buildField(
+                      // EMAIL
+                      TextFormField(
+                        controller: emailC,
+                        validator: (v) => v!.isEmpty ? "Email required" : null,
+                        decoration: InputDecoration(
+                          labelText: "Email",
+                          filled: true,
+                          fillColor: backgroundColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // PASSWORD + SHOW/HIDE
+                      TextFormField(
                         controller: passC,
-                        label: "Kata Sandi",
-                        hint: "Masukkan kata sandi...",
-                        isPassword: true,
+                        obscureText: _obscurePassword, // 👈 dipake di sini
+                        validator: (v) =>
+                            v!.isEmpty ? "Password required" : null,
+                        decoration: InputDecoration(
+                          labelText: "Password",
+                          filled: true,
+                          fillColor: backgroundColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide.none,
+                          ),
+
+                          // 👇 INI TOMBOL MATA UNTUK SHOW/HIDE
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: primaryColor,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
                       ),
 
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 10),
 
-                      // LUPA PASSWORD
+                      // FORGOT PASSWORD
                       Align(
                         alignment: Alignment.centerRight,
                         child: GestureDetector(
@@ -199,17 +187,17 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             );
                           },
-                          child: const Text(
-                            "Lupa Kata Sandi?",
+                          child: Text(
+                            "Forgot Password?",
                             style: TextStyle(
-                              color: Color(0xff1D5DFF),
+                              color: primaryColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 25),
 
                       // LOGIN BUTTON
                       SizedBox(
@@ -217,69 +205,59 @@ class _LoginPageState extends State<LoginPage> {
                         height: 52,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xff1D5DFF),
+                            backgroundColor: primaryColor,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          // Panggil fungsi _loginAction, dinonaktifkan saat loading
                           onPressed: _isLoading ? null : _loginAction,
                           child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
                                 )
                               : const Text(
-                                  "Log In",
+                                  "Login",
                                   style: TextStyle(
-                                    fontSize: 17,
+                                    fontSize: 18,
                                     color: Colors.white,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                         ),
                       ),
 
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 20),
 
                       // REGISTER
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text("Belum punya akun? "),
+                          const Text("Don't have an account? "),
                           GestureDetector(
-                            onTap: () async {
-                              await Navigator.push(
+                            onTap: () {
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const RegisterPage(),
+                                  builder: (_) => const RegisterPage(),
                                 ),
                               );
                             },
-                            child: const Text(
+                            child: Text(
                               "Register",
                               style: TextStyle(
-                                color: Color(0xff1D5DFF),
+                                color: primaryColor,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15,
                               ),
                             ),
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

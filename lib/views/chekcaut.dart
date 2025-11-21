@@ -34,6 +34,14 @@ class _CheckInOutPageState extends State<CheckInOutPage> {
   final double _targetLat = -6.2000;
   final double _targetLng = 106.8167;
 
+  // Tema warna
+  final Color primaryColor = const Color(0xFF1D5DFF); // biru utama
+  final Color checkOutColor = const Color(0xFFFF4C4C); // merah tombol check out
+  final Color backgroundColor = Colors.white;
+  final Color cardBackgroundColor = const Color(0xFFF2F6FF); // biru soft
+  final Color textPrimaryColor = Colors.black;
+  final Color textSecondaryColor = const Color(0xFF666666);
+
   @override
   void initState() {
     super.initState();
@@ -216,13 +224,16 @@ class _CheckInOutPageState extends State<CheckInOutPage> {
   @override
   Widget build(BuildContext context) {
     final title = widget.isCheckIn ? "Check In" : "Check Out";
-    final buttonColor = widget.isCheckIn
-        ? const Color(0xff1D5DFF)
-        : Colors.red.shade600;
+    final buttonColor = widget.isCheckIn ? primaryColor : checkOutColor;
     final buttonText = widget.isCheckIn ? "Kirim Check In" : "Kirim Check Out";
 
     return Scaffold(
-      appBar: AppBar(title: Text(title), backgroundColor: buttonColor),
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: buttonColor,
+        elevation: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -230,82 +241,110 @@ class _CheckInOutPageState extends State<CheckInOutPage> {
           children: [
             Text(
               _statusMessage,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: _statusMessage.contains("Gagal")
+                    ? Colors.red
+                    : textSecondaryColor,
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
             // Lokasi
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xffe7f0ff),
+                color: cardBackgroundColor,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.location_on, color: buttonColor, size: 30),
-                  const SizedBox(width: 8),
+                  Icon(Icons.location_on, color: buttonColor, size: 28),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      "Lokasi: ${_currentPosition?.latitude.toStringAsFixed(4) ?? '...'}, "
-                      "${_currentPosition?.longitude.toStringAsFixed(4) ?? '...'}\n"
-                      "Jarak: $_distanceText",
-                      style: const TextStyle(fontSize: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Lokasi: ${_currentPosition?.latitude.toStringAsFixed(4) ?? '...'}, "
+                          "${_currentPosition?.longitude.toStringAsFixed(4) ?? '...'}",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Jarak dari kantor: $_distanceText",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: textSecondaryColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
 
-            // Jam realtime
+            // Jam Realtime
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.black12),
+                color: cardBackgroundColor,
               ),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     "Jam Sekarang",
-                    style: TextStyle(color: Colors.black54),
+                    style: TextStyle(fontSize: 14, color: textSecondaryColor),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     _currentTime,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
+                      color: textPrimaryColor,
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
 
-            OutlinedButton(
-              onPressed: _isSending ? null : _takePhoto,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: buttonColor),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(
-                _imageFile == null ? "Ambil Foto" : "Ulangi Foto",
-                style: TextStyle(color: buttonColor, fontSize: 16),
+            // Tombol Ambil Foto
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isSending ? null : _takePhoto,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: buttonColor),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  _imageFile == null ? "Ambil Foto" : "Ulangi Foto",
+                  style: TextStyle(color: buttonColor, fontSize: 16),
+                ),
               ),
             ),
-
             const SizedBox(height: 15),
 
+            // Preview Foto
             if (_imageFile != null)
               Expanded(
                 child: Container(
+                  margin: const EdgeInsets.only(bottom: 18),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black12),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
@@ -316,21 +355,38 @@ class _CheckInOutPageState extends State<CheckInOutPage> {
             else
               const Spacer(),
 
-            ElevatedButton(
-              onPressed: _isSending ? null : _sendCheckin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            // Tombol Kirim
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed:
+                    _isSending || _imageFile == null || _currentPosition == null
+                    ? null
+                    : _sendCheckin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
+                child: _isSending
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        buttonText,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
-              child: _isSending
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(
-                      buttonText,
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
-                    ),
             ),
           ],
         ),

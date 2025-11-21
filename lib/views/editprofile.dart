@@ -1,16 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:project_ppkd_b4/service/api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({super.key});
+  final String oldName;
+  final String oldEmail;
+
+  const EditProfilePage({super.key, required this.oldName, required this.oldEmail});
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  final namaController = TextEditingController(text: "Entong kul");
-  final emailController = TextEditingController(text: "entong@company.com");
-  final telpController = TextEditingController(text: "+62 812 3456 7890");
+  final namaController = TextEditingController();
+  final emailController = TextEditingController();
+
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    namaController.text = widget.oldName;
+    emailController.text = widget.oldEmail;
+  }
+
+  Future<void> simpan() async {
+    setState(() => loading = true);
+
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    final token = pref.getString("token") ?? "";
+
+    await AuthAPI.editProfile(
+      token: token,
+      name: namaController.text,
+      email: emailController.text,
+    );
+
+    setState(() => loading = false);
+
+    Navigator.pop(context, true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +64,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             _input("Nama Lengkap", namaController),
             _input("Email", emailController),
-            _input("Nomor Telepon", telpController),
 
             const SizedBox(height: 30),
 
@@ -48,17 +77,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                onPressed: () {
-                  Navigator.pop(context, {
-                    "nama": namaController.text,
-                    "email": emailController.text,
-                    "telp": telpController.text,
-                  });
-                },
-                child: const Text(
-                  "Simpan Perubahan",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+                onPressed: loading ? null : simpan,
+                child: loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Simpan Perubahan",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
               ),
             ),
           ],

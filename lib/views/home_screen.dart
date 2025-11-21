@@ -3,10 +3,12 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:project_ppkd_b4/models/statistik_models.dart';
+import 'package:project_ppkd_b4/service/api.dart';
 import 'package:project_ppkd_b4/views/chekcaut.dart';
 import 'package:project_ppkd_b4/views/chekin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart'; // 🔥 WAJIB BIAR TIDAK ERROR
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,23 +18,54 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  GoogleMapController? mapController;
+  Data? _statistikAbsen;
+  bool _isLoadingStatistik = true;
+
   GoogleMapController? _googleMapController;
+
   LatLng _currentPosition = LatLng(-6.2000, 108.816666);
   String _currentAddress = "Alamat tidak ditemukan";
   Marker? _marker;
 
-  String _userName = "Pengguna";
-  String _userNIP = "Memuat...";
+  String _userName = "pengguna";
   String _currentDate = "";
   String _greeting = "Halo";
   bool _isLoading = true;
+
+  // Warna tema biru soft
+  final Color primaryColor = const Color(0xFF5A86FF);
+  final Color accentColor = const Color(0xFF8CC8FF);
+  final Color backgroundColor = const Color(0xFFEFF5FF);
+  final Color cardBackgroundColor = const Color(0xFFFFFFFF);
+  final Color textPrimaryColor = const Color(0xFF1E2A78);
+  final Color textSecondaryColor = const Color(0xFF4A6FA5);
 
   @override
   void initState() {
     super.initState();
     _loadUserDataAndDate();
     _getCurrentLocation();
+    _loadStatistikAbsen();
+  }
+
+  Future<void> _loadStatistikAbsen() async {
+    setState(() => _isLoadingStatistik = true);
+    try {
+      final pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token") ?? "";
+
+      final stat = await AuthAPI.getStatistik(token);
+
+      if (mounted) {
+        setState(() {
+          _statistikAbsen = stat.data;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error load statistik: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingStatistik = false);
+    }
   }
 
   String _getGreeting() {
@@ -45,7 +78,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadUserDataAndDate() async {
     setState(() => _isLoading = true);
-
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final name = prefs.getString('userName');
@@ -65,13 +97,9 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ==========================
-  //     OPEN GOOGLE MAPS
-  // ==========================
   void openGoogleMaps() async {
     final lat = _currentPosition.latitude;
     final lng = _currentPosition.longitude;
-
     final googleUrl =
         "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
 
@@ -89,6 +117,7 @@ class _HomePageState extends State<HomePage> {
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
+
       if (permission != LocationPermission.whileInUse &&
           permission != LocationPermission.always) {
         return;
@@ -105,6 +134,7 @@ class _HomePageState extends State<HomePage> {
       _currentPosition.latitude,
       _currentPosition.longitude,
     );
+
     Placemark place = placemarks[0];
 
     setState(() {
@@ -131,16 +161,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xff1D5DFF)),
-        ),
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: Center(child: CircularProgressIndicator(color: primaryColor)),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -149,67 +177,44 @@ class _HomePageState extends State<HomePage> {
             children: [
               const SizedBox(height: 15),
 
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xff1D5DFF).withOpacity(0.2),
-                    child: const Icon(
-                      Icons.person,
-                      size: 35,
-                      color: Color(0xff1D5DFF),
-                    ),
-                  ),
+              // =========================
+              //  HEADER BARU TANPA FOTO
+              // =========================
+              Text(
+                _greeting,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: textPrimaryColor,
+                ),
+              ),
+              const SizedBox(height: 4),
 
-                  const SizedBox(width: 15),
+              Text(
+                _userName,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                ),
+              ),
 
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _greeting,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black54,
-                        ),
-                      ),
+              const SizedBox(height: 4),
 
-                      const SizedBox(height: 3),
-
-                      Text(
-                        _userName,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-
-                      Text(
-                        _currentDate,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              Text(
+                _currentDate,
+                style: TextStyle(fontSize: 14, color: textSecondaryColor),
               ),
 
               const SizedBox(height: 25),
 
-              // ===============================================
-              //   CHECK IN + CHECK OUT (BERSEBELAHAN)
-              // ===============================================
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: const Color(0xff1D5DFF),
+                        backgroundColor: primaryColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -225,22 +230,16 @@ class _HomePageState extends State<HomePage> {
                       },
                       child: const Text(
                         "CHECK IN",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 18),
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: Colors.red,
+                        backgroundColor: accentColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -254,111 +253,143 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         "CHECK OUT",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(color: primaryColor, fontSize: 18),
                       ),
                     ),
                   ),
                 ],
-              ),
-
-              const SizedBox(height: 25),
-
-              // ==========================
-              //        GOOGLE MAPS
-              // ==========================
-              SizedBox(
-                height: 250,
-                width: double.infinity,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: GoogleMap(
-                      myLocationEnabled: true,
-                      initialCameraPosition: CameraPosition(
-                        target: _currentPosition,
-                        zoom: 15,
-                      ),
-                    ),
-                  ),
-                ),
               ),
 
               const SizedBox(height: 25),
 
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
+                height: 250,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Column(
-                  children: [
-                    const Text(
-                      "Distance from place",
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: GoogleMap(
+                    myLocationEnabled: true,
+                    markers: _marker != null ? {_marker!} : {},
+                    initialCameraPosition: CameraPosition(
+                      target: _currentPosition,
+                      zoom: 15,
                     ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      "250.43m",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xff1D5DFF),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: openGoogleMaps,
-                        child: const Text(
-                          "Open Maps",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
+                    onMapCreated: (controller) {
+                      _googleMapController = controller;
+                    },
+                  ),
                 ),
               ),
 
               const SizedBox(height: 25),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Riwayat Kehadiran",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    "Lihat Semua",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xff1D5DFF),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-
+              _buildDistanceCard(),
+              const SizedBox(height: 25),
+              _buildStatistikCard(),
               const SizedBox(height: 60),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDistanceCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cardBackgroundColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(
+            "Distance from place",
+            style: TextStyle(fontSize: 14, color: textSecondaryColor),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            "250.43m",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: textPrimaryColor,
+            ),
+          ),
+          const SizedBox(height: 15),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: openGoogleMaps,
+              child: Text(
+                "Open Maps",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatistikCard() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _statItem("Total Absen", _statistikAbsen?.totalAbsen ?? 0, Icons.check),
+        _statItem("Masuk", _statistikAbsen?.totalMasuk ?? 0, Icons.login),
+        _statItem("Izin", _statistikAbsen?.totalIzin ?? 0, Icons.assignment),
+        _statItem(
+          "Hari Ini",
+          (_statistikAbsen?.sudahAbsenHariIni ?? false) ? 1 : 0,
+          Icons.today,
+        ),
+      ],
+    );
+  }
+
+  Widget _statItem(String title, int value, IconData icon) {
+    return Container(
+      width: 75,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: primaryColor, size: 28),
+          const SizedBox(height: 6),
+          Text(
+            value.toString(),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: textSecondaryColor),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

@@ -33,6 +33,14 @@ class _CheckInPageState extends State<CheckInPage> {
   final double _targetLng = 106.8167;
   String _distanceText = "Mengecek jarak...";
 
+  // Warna soft / adem
+  final Color primaryColor = const Color(0xFF4A90E2);
+  final Color accentColor = const Color(0xFF6AC7C9);
+  final Color backgroundColor = const Color(0xFFF9FAFB);
+  final Color cardBackgroundColor = const Color(0xFFE8F4FF);
+  final Color textPrimaryColor = const Color(0xFF333333);
+  final Color textSecondaryColor = const Color(0xFF666666);
+
   @override
   void initState() {
     super.initState();
@@ -244,12 +252,10 @@ class _CheckInPageState extends State<CheckInPage> {
   Widget build(BuildContext context) {
     final title = widget.isCheckIn ? "Check In" : "Check Out";
     final buttonText = widget.isCheckIn ? "Kirim Check In" : "Kirim Check Out";
-    final buttonColor = widget.isCheckIn
-        ? const Color(0xff1D5DFF)
-        : Colors.red.shade600;
+    final buttonColor = widget.isCheckIn ? primaryColor : Colors.red.shade600;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(title),
         backgroundColor: buttonColor,
@@ -268,7 +274,7 @@ class _CheckInPageState extends State<CheckInPage> {
                     _statusMessage.contains("Gagal") ||
                         _statusMessage.contains("Sesi berakhir")
                     ? Colors.red
-                    : Colors.black54,
+                    : textSecondaryColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -277,16 +283,12 @@ class _CheckInPageState extends State<CheckInPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xffe7f0ff),
+                color: cardBackgroundColor,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.location_on,
-                    color: Color(0xff1D5DFF),
-                    size: 28,
-                  ),
+                  Icon(Icons.location_on, color: primaryColor, size: 28),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -294,14 +296,18 @@ class _CheckInPageState extends State<CheckInPage> {
                       children: [
                         Text(
                           "Lokasi Anda: ${(_currentPosition?.latitude.toStringAsFixed(4) ?? '...')}, ${(_currentPosition?.longitude.toStringAsFixed(4) ?? '...')}",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
+                            color: textPrimaryColor,
                           ),
                         ),
                         Text(
                           "Jarak dari kantor: $_distanceText",
-                          style: const TextStyle(fontSize: 13),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: textSecondaryColor,
+                          ),
                         ),
                       ],
                     ),
@@ -315,20 +321,21 @@ class _CheckInPageState extends State<CheckInPage> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.black12),
+                color: cardBackgroundColor,
               ),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     "Jam Sekarang",
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                    style: TextStyle(fontSize: 14, color: textSecondaryColor),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     _currentTime,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
+                      color: textPrimaryColor,
                     ),
                   ),
                 ],
@@ -344,6 +351,9 @@ class _CheckInPageState extends State<CheckInPage> {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   side: BorderSide(color: buttonColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: Text(
                   _imageFile == null ? "Ambil Foto" : "Ulangi Ambil Foto",
